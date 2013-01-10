@@ -129,6 +129,7 @@ func wrapResponseWriter(rw http.ResponseWriter, w io.WriteCloser) http.ResponseW
 	return &wrappedRW{w, rw}
 }
 
+// Compress response if possible
 func Compress(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f := func(w http.ResponseWriter) http.ResponseWriter {
