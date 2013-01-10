@@ -1,7 +1,10 @@
 package godspeed
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -47,4 +50,48 @@ func TestMimetype(t *testing.T) {
 	Mimetype(jsonHandler).ServeHTTP(rec, r)
 	assert200(t, r, rec)
 	testContentType(t, r, rec, "application/json")
+}
+
+func TestCompress(t *testing.T) {
+	rec := httptest.NewRecorder()
+	rec.Body = bytes.NewBuffer(nil)
+	r, _ := http.NewRequest("GET", "/test.txt", nil)
+	r.Header.Add("Accept-Encoding", " gzip ,deflate ")
+	Compress(Mimetype(simpleHandler)).ServeHTTP(rec, r)
+	assert200(t, r, rec)
+	if rec.Header().Get("Content-Encoding") != "gzip" {
+		t.Fatal("Response not encoded as gzip")
+	}
+	reader, err := gzip.NewReader(rec.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := ioutil.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "test" {
+		t.Errorf("Unexpected response decompressed: %v, expected: 'test'", data)
+	}
+}
+
+// Do not compress data with unknown mime-type
+func TestNoCompress(t *testing.T) {
+	rec := httptest.NewRecorder()
+	rec.Body = bytes.NewBuffer(nil)
+	r, _ := http.NewRequest("GET", "/test.txt", nil)
+	r.Header.Add("Accept-Encoding", "deflate, gzip")
+	// Not wrapped in Mimetype, so no content-type header
+	Compress(simpleHandler).ServeHTTP(rec, r)
+	assert200(t, r, rec)
+	if enc := rec.Header().Get("Content-Encoding"); enc != "" {
+		t.Fatalf("Response unexpectedly encoded as %q", enc)
+	}
+	data, err := ioutil.ReadAll(rec.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "test" {
+		t.Errorf("Unexpected uncompressed response: %v, expected: 'test'", data)
+	}
 }
