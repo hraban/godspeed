@@ -46,6 +46,7 @@ func compressable(ctype string) bool {
 // Compress response if possible
 func Compress(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var closer io.Closer
 		f := func(w http.ResponseWriter) io.Writer {
 			head := w.Header()
 			if !compressable(head.Get("Content-Type")) {
@@ -62,13 +63,16 @@ func Compress(h http.Handler) http.Handler {
 					continue
 				}
 				head.Set("Content-Encoding", "gzip")
-				return gzip.NewWriter(w)
+				wr := gzip.NewWriter(w)
+				closer = wr
+				return wr
 			}
 			return w
 		}
-		wrap := wrapBody(w, f)
-		h.ServeHTTP(wrap, r)
-		// TODO: Error?
-		wrap.Close()
+		h.ServeHTTP(wrapBody(w, f), r)
+		if closer != nil {
+			// TODO: Error?
+			closer.Close()
+		}
 	})
 }

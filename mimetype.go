@@ -42,9 +42,6 @@ func Mimetype(h http.Handler) http.Handler {
 			}
 			return w
 		}
-		wrap := wrapBody(w, f)
-		h.ServeHTTP(wrap, r)
-		// TODO: Error?
-		wrap.Close()
+		h.ServeHTTP(wrapBody(w, f), r)
 	})
 }
