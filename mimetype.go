@@ -21,6 +21,7 @@
 package godspeed
 
 import (
+	"io"
 	"mime"
 	"net/http"
 	"regexp"
@@ -32,7 +33,7 @@ var findext = regexp.MustCompile(`\.\w+$`)
 // not override content-type if already set.
 func Mimetype(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := func(w http.ResponseWriter) http.ResponseWriter {
+		f := func(w http.ResponseWriter) io.Writer {
 			if head := w.Header(); head.Get("Content-Type") == "" {
 				ext := findext.FindString(r.URL.Path)
 				if ctype := mime.TypeByExtension(ext); ctype != "" {
@@ -41,7 +42,7 @@ func Mimetype(h http.Handler) http.Handler {
 			}
 			return w
 		}
-		wrap := wrapPostHeader(w, f)
+		wrap := wrapBody(w, f)
 		h.ServeHTTP(wrap, r)
 		// TODO: Error?
 		wrap.Close()

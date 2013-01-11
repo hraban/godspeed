@@ -22,6 +22,7 @@ package godspeed
 
 import (
 	"compress/gzip"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -45,7 +46,7 @@ func compressable(ctype string) bool {
 // Compress response if possible
 func Compress(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := func(w http.ResponseWriter) http.ResponseWriter {
+		f := func(w http.ResponseWriter) io.Writer {
 			head := w.Header()
 			if !compressable(head.Get("Content-Type")) {
 				return w
@@ -61,11 +62,11 @@ func Compress(h http.Handler) http.Handler {
 					continue
 				}
 				head.Set("Content-Encoding", "gzip")
-				return wrapResponseWriter(w, gzip.NewWriter(w))
+				return gzip.NewWriter(w)
 			}
 			return w
 		}
-		wrap := wrapPostHeader(w, f)
+		wrap := wrapBody(w, f)
 		h.ServeHTTP(wrap, r)
 		// TODO: Error?
 		wrap.Close()
