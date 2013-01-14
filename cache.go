@@ -50,7 +50,7 @@ func (e diskEntry) OnPurge(why lrucache.PurgeReason) {
 	err := os.Remove(e.path)
 	if err != nil {
 		// Unexpected and seemingly harmless so I don't really care
-		log.Print("Failed to remove", e.path, "from godspeed cache:", err)
+		log.Print("Failed to remove ", e.path, " from godspeed cache: ", err)
 	}
 }
 
