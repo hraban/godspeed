@@ -25,21 +25,32 @@ import (
 	"net/http"
 )
 
+// Set the HTTP header in the response to the given value if the handler does
+// not set it to anything.
+func setDefaultHeader(h http.Handler, header, value string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		f := func(w http.ResponseWriter) io.Writer {
+			head := w.Header()
+			// Only if no explicit setting exists
+			if head.Get(header) == "" {
+				head.Set(header, value)
+			}
+			return w
+		}
+		h.ServeHTTP(wrapBody(w, f), r)
+	})
+}
+
 // Disallow resources from being included in (i)frames on other sites unless
 // specified otherwise. This is done through the X-Frame-Options header. If a
 // handler does not explicitly set this header, it is set to SAMEORIGIN.
 //
 // http://tools.ietf.org/html/draft-ietf-websec-x-frame-options-01
 func XFrameOptions(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f := func(w http.ResponseWriter) io.Writer {
-			head := w.Header()
-			// Only if no explicit setting exists
-			if head.Get("X-Frame-Options") == "" {
-				head.Set("X-Frame-Options", "SAMEORIGIN")
-			}
-			return w
-		}
-		h.ServeHTTP(wrapBody(w, f), r)
-	})
+	return setDefaultHeader(h, "X-Frame-Options", "SAMEORIGIN")
+}
+
+// Turn on MSIE8 XSS protection filter.
+func XXSSProtection(h http.Handler) http.Handler {
+	return setDefaultHeader(h, "X-XSS-Protection", "1; mode=block")
 }
