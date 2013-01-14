@@ -64,5 +64,17 @@ func TestCache(t *testing.T) {
 	if string(data) != "test" {
 		t.Fatalf("Unexpected cached response: %v, expected: 'test'", data)
 	}
+	// Test cheat: change the underlying cache size
+	h.(*cacheWrapper).idx.MaxSize(6) // 6 bytes; "test" = 4
+	// New resource that should cause test.txt to get purged
+	rec = httptest.NewRecorder()
+	r, _ = http.NewRequest("GET", "/test2.txt", nil)
+	h.ServeHTTP(rec, r)
+	assert200(t, r, rec)
+	_, err = os.Open(cachepath)
+	if err == nil {
+		t.Fatalf("Cache file %q not pruned while cache is full", cachepath)
+	}
+	// Clean up cache directory
 	os.RemoveAll(basedir)
 }
