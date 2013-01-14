@@ -22,6 +22,7 @@ package godspeed
 
 import (
 	"compress/gzip"
+	"compress/zlib"
 	"io"
 	"net/http"
 	"strings"
@@ -59,11 +60,16 @@ func Compress(h http.Handler) http.Handler {
 			for _, c := range strings.Split(r.Header.Get("Accept-Encoding"), ",") {
 				// TODO: qvalue
 				c = strings.TrimSpace(c)
-				if c != "gzip" {
+				var wr io.WriteCloser
+				switch c {
+				case "deflate":
+					wr = zlib.NewWriter(w)
+				case "gzip":
+					wr = gzip.NewWriter(w)
+				default:
 					continue
 				}
-				head.Set("Content-Encoding", "gzip")
-				wr := gzip.NewWriter(w)
+				head.Set("Content-Encoding", c)
 				closer = wr
 				return wr
 			}
