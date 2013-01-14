@@ -143,12 +143,19 @@ func mustmkdtemp(tmpl string) string {
 // of a HTTP cache. Note that this is really not transparent caching:
 //
 // - Headers are not cached
+//
 // - As a consequence, encoded data (gzip etc) is served from cache as raw data
+//
 // - Upstream status code is completely ignored
+//
 // - Caching directives from client are ignored
+//
 // - HTTP caching directives from upstream are ignored
+//
 // - Non-standard upstream "X-Cache" header is used to determine cacheability
+//
 // - Cache hits are served as raw files, introducing some illegal headers
+//
 // - and probably more...
 //
 // All of that notwithstanding, this is a proof of concept worth exploring.
